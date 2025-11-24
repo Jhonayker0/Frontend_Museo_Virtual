@@ -1,9 +1,82 @@
 import { Canvas } from '@react-three/fiber';
 import { VRButton, XR, createXRStore } from '@react-three/xr';
-import { OrbitControls, Environment, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import VirtualGallery from './VirtualGallery';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Artwork } from '../../services/artworkService';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+
+// Componente para movimiento con joystick
+function PlayerMovement({ children }: { children: React.ReactNode }) {
+  const group = useRef<THREE.Group>(null);
+
+  useFrame(({ gl }) => {
+    const session = gl.xr.getSession();
+    if (!session || !group.current) return;
+
+    session.inputSources.forEach((source) => {
+      if (!source.gamepad) return;
+      
+      const axes = source.gamepad.axes;
+      
+      // Controlador izquierdo - Movimiento
+      if (source.handedness === 'left') {
+        let moveX = 0, moveY = 0;
+        
+        if (axes.length >= 4) {
+          moveX = Math.abs(axes[2]) > 0.15 ? axes[2] : 0;
+          moveY = Math.abs(axes[3]) > 0.15 ? axes[3] : 0;
+        }
+        if (moveX === 0 && moveY === 0 && axes.length >= 2) {
+          moveX = Math.abs(axes[0]) > 0.15 ? axes[0] : 0;
+          moveY = Math.abs(axes[1]) > 0.15 ? axes[1] : 0;
+        }
+        
+        if (moveX !== 0 || moveY !== 0) {
+          const speed = 0.05;
+          
+          // Obtener rotación actual del grupo
+          const rotation = group.current.rotation.y;
+          
+          // Calcular dirección basada en rotación
+          const forward = new THREE.Vector3(
+            -Math.sin(rotation),
+            0,
+            -Math.cos(rotation)
+          );
+          const right = new THREE.Vector3(
+            Math.cos(rotation),
+            0,
+            -Math.sin(rotation)
+          );
+          
+          // Mover el grupo (que contiene todo el museo) - invertir forward
+          group.current.position.x -= right.x * moveX * speed - forward.x * moveY * speed;
+          group.current.position.z -= right.z * moveX * speed - forward.z * moveY * speed;
+        }
+      }
+      
+      // Controlador derecho - Rotación
+      if (source.handedness === 'right') {
+        let rotX = 0;
+        
+        if (axes.length >= 4) {
+          rotX = Math.abs(axes[2]) > 0.15 ? axes[2] : 0;
+        }
+        if (rotX === 0 && axes.length >= 2) {
+          rotX = Math.abs(axes[0]) > 0.15 ? axes[0] : 0;
+        }
+        
+        if (rotX !== 0 && group.current) {
+          group.current.rotation.y += rotX * 0.02;
+        }
+      }
+    });
+  });
+
+  return <group ref={group}>{children}</group>;
+}
 
 interface ARGalleryProps {
   artworks: Artwork[];
@@ -40,40 +113,61 @@ export default function ARGallery({ artworks }: ARGalleryProps) {
       />
 
       <Canvas
-        style={{ background: '#1a1a2e' }}
+        style={{ background: '#f5f0e8' }}
         gl={{ 
           antialias: true,
           alpha: false,
           // Configuración optimizada para Quest 2
           powerPreference: 'high-performance',
         }}
+        shadows
       >
         {/* XR: Habilita WebXR (VR/AR) */}
         <XR store={store}>
-          {/* Iluminación del espacio 3D */}
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <pointLight position={[-10, -10, -5]} intensity={0.5} />
+          {/* Movimiento con joystick - envuelve todo el contenido */}
+          <PlayerMovement>
+            {/* Iluminación estilo museo */}
+            <ambientLight intensity={0.4} />
+            <directionalLight 
+              position={[10, 10, 5]} 
+              intensity={0.8} 
+              castShadow
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+            />
+            <pointLight position={[0, 4, 0]} intensity={0.6} distance={15} decay={2} />
+            <spotLight 
+              position={[5, 5, 5]} 
+              angle={0.3} 
+              penumbra={0.5} 
+              intensity={0.5}
+              castShadow
+            />
+            <spotLight 
+              position={[-5, 5, -5]} 
+              angle={0.3} 
+              penumbra={0.5} 
+            intensity={0.5}
+            castShadow
+            />
 
-          {/* Cámara con perspectiva */}
-          <PerspectiveCamera makeDefault position={[0, 1.6, 5]} />
+            {/* Cámara con perspectiva */}
+            <PerspectiveCamera makeDefault position={[0, 1.6, 5]} />
 
-          {/* Galería virtual con las obras de arte */}
-          <VirtualGallery 
-            artworks={artworks}
-            onSelectArtwork={setSelectedArtwork}
-          />
+            {/* Galería virtual con las obras de arte */}
+            <VirtualGallery 
+              artworks={artworks}
+              onSelectArtwork={setSelectedArtwork}
+            />
 
-          {/* Entorno HDR para reflejos y ambiente realista */}
-          <Environment preset="sunset" />
-
-          {/* Controles para navegación con mouse (modo no-VR) */}
-          <OrbitControls 
-            enablePan={true}
-            enableZoom={true}
-            enableRotate={true}
-            target={[0, 1.6, 0]}
-          />
+            {/* Controles para navegación con mouse (modo no-VR) */}
+            <OrbitControls 
+              enablePan={true}
+              enableZoom={true}
+              enableRotate={true}
+              target={[0, 1.6, 0]}
+            />
+          </PlayerMovement>
         </XR>
       </Canvas>
 

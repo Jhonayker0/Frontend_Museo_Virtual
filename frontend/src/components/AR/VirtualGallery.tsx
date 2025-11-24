@@ -99,20 +99,51 @@ export default function VirtualGallery({ artworks, onSelectArtwork }: VirtualGal
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[30, 30]} />
         <meshStandardMaterial 
-          color="#1a1a1a" 
-          roughness={0.2}
+          color="#f0ece2" 
+          roughness={0.4}
           metalness={0.1}
         />
       </mesh>
 
-      {/* Grid del suelo para mejor orientación espacial */}
-      <gridHelper args={[30, 30, '#333333', '#222222']} position={[0, 0.01, 0]} />
+      {/* Grid del suelo sutil */}
+      <gridHelper args={[30, 30, '#e0d9cc', '#ebe6d9']} position={[0, 0.01, 0]} />
 
-      {/* Renderizar cada obra de arte */}
+      {/* Paredes con colores pastel - Alejadas de los marcos */}
+      {/* Pared frontal - Azul pastel claro */}
+      <mesh position={[0, 2.5, -8]} receiveShadow>
+        <boxGeometry args={[20, 5, 0.2]} />
+        <meshStandardMaterial color="#e3f2fd" roughness={0.7} />
+      </mesh>
+      
+      {/* Pared derecha - Beige pastel */}
+      <mesh position={[8, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <boxGeometry args={[20, 5, 0.2]} />
+        <meshStandardMaterial color="#f5f5dc" roughness={0.7} />
+      </mesh>
+      
+      {/* Pared izquierda - Beige pastel */}
+      <mesh position={[-8, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <boxGeometry args={[20, 5, 0.2]} />
+        <meshStandardMaterial color="#f5f5dc" roughness={0.7} />
+      </mesh>
+      
+      {/* Pared trasera - Azul pastel claro */}
+      <mesh position={[0, 2.5, 8]} receiveShadow>
+        <boxGeometry args={[20, 5, 0.2]} />
+        <meshStandardMaterial color="#e3f2fd" roughness={0.7} />
+      </mesh>
+
+      {/* Techo - Crema claro */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 5, 0]}>
+        <planeGeometry args={[30, 30]} />
+        <meshStandardMaterial color="#fffef7" roughness={0.8} />
+      </mesh>
+
+      {/* Renderizar obras de arte */}
       {artworks.map((artwork, index) => {
         const { position, rotation } = getArtworkPosition(index);
-        // Crear una key única combinando museo, id e índice
         const uniqueKey = `${artwork.museum}_${artwork.id || 'no-id'}_${index}`;
+        
         return (
           <ArtworkFrame
             key={uniqueKey}
@@ -124,22 +155,12 @@ export default function VirtualGallery({ artworks, onSelectArtwork }: VirtualGal
         );
       })}
 
-      {/* Paredes invisibles con colisión (opcional) */}
-      {/* Estas paredes ayudan a definir el espacio pero no son visibles */}
-      <mesh position={[0, 2, -wallSpacing - 0.1]} visible={false}>
-        <boxGeometry args={[wallSpacing * 2, 4, 0.2]} />
-        <meshStandardMaterial transparent opacity={0} />
-      </mesh>
-      
-      <mesh position={[wallSpacing + 0.1, 2, 0]} rotation={[0, Math.PI / 2, 0]} visible={false}>
-        <boxGeometry args={[wallSpacing * 2, 4, 0.2]} />
-        <meshStandardMaterial transparent opacity={0} />
-      </mesh>
-      
-      <mesh position={[-wallSpacing - 0.1, 2, 0]} rotation={[0, Math.PI / 2, 0]} visible={false}>
-        <boxGeometry args={[wallSpacing * 2, 4, 0.2]} />
-        <meshStandardMaterial transparent opacity={0} />
+      {/* Bancos para observar las obras */}
+      <mesh position={[0, 0.25, 2]} castShadow>
+        <boxGeometry args={[2, 0.5, 0.8]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.7} />
       </mesh>
     </group>
   );
 }
+
