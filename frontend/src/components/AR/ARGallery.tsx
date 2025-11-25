@@ -2,10 +2,12 @@ import { Canvas } from '@react-three/fiber';
 import { VRButton, XR, createXRStore } from '@react-three/xr';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import VirtualGallery from './VirtualGallery';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Artwork } from '../../services/artworkService';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import artworkService from '../../services/artworkService';
+import authService from '../../services/authService';
 
 // Componente para movimiento con joystick
 function PlayerMovement({ children }: { children: React.ReactNode }) {
@@ -90,7 +92,69 @@ interface ARGalleryProps {
  */
 export default function ARGallery({ artworks }: ARGalleryProps) {
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [favLoading, setFavLoading] = useState<boolean>(false);
   const store = createXRStore();
+
+  // Reset favorite flag when selection changes
+  useEffect(() => {
+    let mounted = true;
+    // cuando se selecciona una obra, comprobar si ya está en favoritos
+    const checkFavorite = async () => {
+      setIsFavorite(false);
+      setFavLoading(true);
+      if (!selectedArtwork) {
+        setFavLoading(false);
+        return;
+      }
+      const user = authService.getCurrentUser();
+      if (!user) {
+        setFavLoading(false);
+        return;
+      }
+      try {
+        const favs = await artworkService.getFavorites(user.id);
+        if (!mounted) return;
+        const found = favs.some((f) => String(f.id) === String(selectedArtwork.id));
+        setIsFavorite(found);
+      } catch (err) {
+        // en caso de error (incluye 429) no marcar como favorito
+        console.debug('Error checking favorites', err);
+        if (!mounted) return;
+        setIsFavorite(false);
+      } finally {
+        if (mounted) setFavLoading(false);
+      }
+    };
+
+    checkFavorite();
+
+    return () => { mounted = false; };
+  }, [selectedArtwork]);
+
+  const handleAddFavorite = async () => {
+    if (!selectedArtwork || !selectedArtwork.id) return alert('Obra sin identificador');
+    const user = authService.getCurrentUser();
+    if (!user) {
+      // No autenticado, redirigir a login
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      setFavLoading(true);
+      await artworkService.addToFavorites(user.id, selectedArtwork.id);
+      setIsFavorite(true);
+      alert('Añadido a favoritos');
+    } catch (err: any) {
+      console.error('Error añadiendo a favoritos', err);
+      alert(err?.response?.data?.message || 'Error al añadir a favoritos');
+    } finally {
+      setFavLoading(false);
+    }
+  };
+
+  // Nota: solo se mantiene la acción de 'añadir a favoritos'.
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
@@ -210,20 +274,36 @@ export default function ARGallery({ artworks }: ARGalleryProps) {
               {selectedArtwork.medium}
             </p>
           )}
-          <button
-            onClick={() => setSelectedArtwork(null)}
-            style={{
-              marginTop: '15px',
-              padding: '8px 16px',
-              backgroundColor: '#1a73e8',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
-          >
-            Cerrar
-          </button>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '15px' }}>
+            <button
+              onClick={handleAddFavorite}
+              disabled={favLoading || isFavorite}
+              style={{
+                padding: '8px 12px',
+                backgroundColor: isFavorite ? '#888' : '#ff6b81',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: favLoading || isFavorite ? 'default' : 'pointer',
+              }}
+            >
+              {favLoading ? 'Procesando...' : isFavorite ? 'Añadido' : 'Añadir a favoritos'}
+            </button>
+
+            <button
+              onClick={() => setSelectedArtwork(null)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#1a73e8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       )}
     </div>

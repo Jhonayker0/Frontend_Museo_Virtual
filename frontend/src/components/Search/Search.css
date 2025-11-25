@@ -13,6 +13,31 @@
   gap: 15px;
 }
 
+.search-history {
+  max-width: 900px;
+  margin: 8px auto;
+  color: #dcdcdc;
+}
+.search-history ul {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+.search-history .history-item {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.search-history .history-item:hover {
+  background: rgba(255,255,255,0.12);
+}
+
 .search-input-group {
   display: flex;
   gap: 10px;
