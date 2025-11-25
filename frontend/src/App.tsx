@@ -5,6 +5,7 @@ import SearchBar from './components/Search/SearchBar';
 import ARGallery from './components/AR/ARGallery';
 import authService from './services/authService';
 import type { Artwork } from './services/artworkService';
+import Favorites from './components/Favorites/Favorites'; // Importing Favorites component
 import './App.css';
 
 type AuthView = 'login' | 'register' | 'gallery';
@@ -13,6 +14,7 @@ function App() {
   const [authView, setAuthView] = useState<AuthView>('login');
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [user, setUser] = useState(authService.getCurrentUser());
+  const [view, setView] = useState<AuthView>('gallery');
 
   useEffect(() => {
     // Verificar si el usuario está autenticado al cargar
@@ -43,6 +45,7 @@ function App() {
     setArtworks(results);
   };
 
+  // Handling favorites view
   // Vista de Login
   if (authView === 'login') {
     return (
@@ -72,6 +75,9 @@ function App() {
           <h1 className="app-title">🎨 Museo Virtual AR</h1>
           <div className="user-info">
             <span className="username">👤 {user?.name}</span>
+            <button onClick={() => setAuthView('favorites')} className="favorites-button">
+              Favoritos
+            </button>
             <button onClick={handleLogout} className="logout-button">
               Cerrar Sesión
             </button>
@@ -82,34 +88,52 @@ function App() {
       {/* Barra de búsqueda */}
       <SearchBar onSearch={handleSearch} />
 
-      {/* Galería AR/VR */}
-      {artworks.length > 0 ? (
-        <ARGallery artworks={artworks} />
-      ) : (
+      {/* Contenido principal: Galería o Favoritos */}
+      {authView === 'gallery' && (
+        artworks.length > 0 ? (
+          <ARGallery artworks={artworks} />
+        ) : (
+          <div className="empty-state">
+            <div className="empty-content">
+              <h2>🔍 Busca obras de arte</h2>
+              <p>Utiliza la barra de búsqueda para encontrar obras de museos famosos</p>
+              <p className="empty-hint">
+                Prueba buscar: "monet", "picasso", "renaissance", "impressionist"
+              </p>
+              <div className="features">
+                <div className="feature">
+                  <span className="feature-icon">🥽</span>
+                  <h3>Realidad Virtual</h3>
+                  <p>Usa tus Meta Quest 2 para explorar en VR</p>
+                </div>
+                <div className="feature">
+                  <span className="feature-icon">🖼️</span>
+                  <h3>Múltiples Museos</h3>
+                  <p>Obras del MET y Harvard Art Museums</p>
+                </div>
+                <div className="feature">
+                  <span className="feature-icon">🎯</span>
+                  <h3>Interactivo</h3>
+                  <p>Haz clic en las obras para ver detalles</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      )}
+
+      {authView === 'favorites' && (
+        <Favorites
+          onBack={() => setAuthView('gallery')}
+          onOpenInGallery={(items) => { setArtworks(items); setAuthView('gallery'); }}
+        />
+      )}
+
+      {authView !== 'gallery' && authView !== 'favorites' && (
         <div className="empty-state">
           <div className="empty-content">
             <h2>🔍 Busca obras de arte</h2>
             <p>Utiliza la barra de búsqueda para encontrar obras de museos famosos</p>
-            <p className="empty-hint">
-              Prueba buscar: "monet", "picasso", "renaissance", "impressionist"
-            </p>
-            <div className="features">
-              <div className="feature">
-                <span className="feature-icon">🥽</span>
-                <h3>Realidad Virtual</h3>
-                <p>Usa tus Meta Quest 2 para explorar en VR</p>
-              </div>
-              <div className="feature">
-                <span className="feature-icon">🖼️</span>
-                <h3>Múltiples Museos</h3>
-                <p>Obras del MET y Harvard Art Museums</p>
-              </div>
-              <div className="feature">
-                <span className="feature-icon">🎯</span>
-                <h3>Interactivo</h3>
-                <p>Haz clic en las obras para ver detalles</p>
-              </div>
-            </div>
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import artworkService, { type SearchParams, type Artwork } from '../../services/artworkService';
 import './Search.css';
+import authService from '../../services/authService';
 
 interface SearchBarProps {
   onSearch: (artworks: Artwork[]) => void;
@@ -11,6 +12,17 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   const [museums, setMuseums] = useState<string[]>(['met', 'harvard']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState<string[]>([]);
+
+  // load search history on mount if logged in
+  useEffect(() => {
+    (async () => {
+      const user = authService.getCurrentUser();
+      if (!user) return;
+      const h = await artworkService.getSearchHistory(user.id);
+      setHistory(h.slice(0, 10));
+    })();
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,8 +72,19 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       }
       
       console.log(`Total: ${allArtworks.length} obras (MET primero)`);
-      
+
       onSearch(allArtworks);
+
+      // persist search in history (best-effort)
+      try {
+        const user = authService.getCurrentUser();
+        if (user) await artworkService.addSearchHistory(user.id, params.query);
+        // refresh local history
+        const h = await artworkService.getSearchHistory(user!.id);
+        setHistory(h.slice(0, 10));
+      } catch {
+        // ignore history errors
+      }
     } catch (err: any) {
       console.error('Error completo:', err);
       console.error('Respuesta del error:', err.response);
@@ -75,6 +98,14 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     }
   };
 
+  const handleHistoryClick = async (q: string) => {
+    setQuery(q);
+    // trigger search programmatically
+    // create a fake event
+    const fake = { preventDefault: () => {} } as unknown as React.FormEvent;
+    await handleSearch(fake);
+  };
+
   const toggleMuseum = (museum: string) => {
     setMuseums(prev => 
       prev.includes(museum) 
@@ -85,6 +116,18 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
 
   return (
     <div className="search-container">
+      {history.length > 0 && (
+        <div className="search-history">
+          <strong>Historial:</strong>
+          <ul>
+            {history.map((h, i) => (
+              <li key={`hist_${i}`}>
+                <button className="history-item" onClick={() => handleHistoryClick(h)}>{h}</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <form onSubmit={handleSearch} className="search-form">
         <div className="search-input-group">
           <input
