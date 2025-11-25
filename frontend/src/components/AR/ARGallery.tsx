@@ -15,6 +15,8 @@ function PlayerMovement({ children }: { children: React.ReactNode }) {
     const session = gl.xr.getSession();
     if (!session || !group.current) return;
 
+    const currentGroup = group.current; // Guardar referencia
+
     session.inputSources.forEach((source) => {
       if (!source.gamepad) return;
       
@@ -37,7 +39,7 @@ function PlayerMovement({ children }: { children: React.ReactNode }) {
           const speed = 0.05;
           
           // Obtener rotación actual del grupo
-          const rotation = group.current.rotation.y;
+          const rotation = currentGroup.rotation.y;
           
           // Calcular dirección basada en rotación
           const forward = new THREE.Vector3(
@@ -52,8 +54,8 @@ function PlayerMovement({ children }: { children: React.ReactNode }) {
           );
           
           // Mover el grupo (que contiene todo el museo) - invertir forward
-          group.current.position.x -= right.x * moveX * speed - forward.x * moveY * speed;
-          group.current.position.z -= right.z * moveX * speed - forward.z * moveY * speed;
+          currentGroup.position.x -= right.x * moveX * speed - forward.x * moveY * speed;
+          currentGroup.position.z -= right.z * moveX * speed - forward.z * moveY * speed;
         }
       }
       
@@ -68,8 +70,8 @@ function PlayerMovement({ children }: { children: React.ReactNode }) {
           rotX = Math.abs(axes[0]) > 0.15 ? axes[0] : 0;
         }
         
-        if (rotX !== 0 && group.current) {
-          group.current.rotation.y += rotX * 0.02;
+        if (rotX !== 0) {
+          currentGroup.rotation.y += rotX * 0.02;
         }
       }
     });
