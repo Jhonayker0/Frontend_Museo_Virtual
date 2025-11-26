@@ -47,6 +47,12 @@ function App() {
     setHasSearched(searched);
   };
 
+  const handleHomeClick = () => {
+    setArtworks([]);
+    setHasSearched(false);
+    setAuthView('gallery');
+  };
+
   // Handling favorites view
   // Vista de Login
   if (authView === 'login') {
@@ -74,7 +80,7 @@ function App() {
       {/* Header con info del usuario */}
       <header className="app-header">
         <div className="header-content">
-          <h1 className="app-title">🎨 Museo Virtual AR</h1>
+          <h1 className="app-title" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>🎨 Museo Virtual AR</h1>
           <div className="user-info">
             <span className="username">👤 {user?.name}</span>
             <button onClick={() => setAuthView('favorites')} className="favorites-button">
