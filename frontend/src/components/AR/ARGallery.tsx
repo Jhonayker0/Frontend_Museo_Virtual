@@ -143,7 +143,7 @@ export default function ARGallery({ artworks }: ARGalleryProps) {
 
     try {
       setFavLoading(true);
-      await artworkService.addToFavorites(user.id, selectedArtwork.id);
+      await artworkService.addToFavorites(user.id, selectedArtwork);
       setIsFavorite(true);
       alert('Añadido a favoritos');
     } catch (err: any) {

@@ -24,6 +24,7 @@ export default function Favorites({ onOpenInGallery, onBack }: FavoritesProps) {
     }
 
     let mounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     const fetchFavorites = async () => {
       // Si estamos en cooldown por rate limit, no volver a pedir
@@ -32,11 +33,22 @@ export default function Favorites({ onOpenInGallery, onBack }: FavoritesProps) {
       setRateLimited(false);
       setRetryAfter(null);
       setErrorMsg(null);
+
+      // Timeout de seguridad: si la petición tarda más de 15 segundos, mostrar error
+      timeoutId = setTimeout(() => {
+        if (mounted) {
+          setLoading(false);
+          setErrorMsg('La petición está tardando demasiado. Por favor, verifica tu conexión o intenta más tarde.');
+        }
+      }, 15000);
+
       try {
         const res = await artworkService.getFavorites(user.id);
+        if (timeoutId) clearTimeout(timeoutId);
         if (!mounted) return;
         setItems(res || []);
       } catch (err: any) {
+        if (timeoutId) clearTimeout(timeoutId);
         console.debug('Error cargando favoritos (tratado)', err);
         const status = err?.response?.status;
         if (status === 429) {
@@ -52,13 +64,17 @@ export default function Favorites({ onOpenInGallery, onBack }: FavoritesProps) {
           setErrorMsg(err?.response?.data?.message || 'Error cargando favoritos');
         }
       } finally {
+        if (timeoutId) clearTimeout(timeoutId);
         if (mounted) setLoading(false);
       }
     };
 
     fetchFavorites();
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [user, cooldownUntil]);
 
   // Cuando se establece un cooldown, programar su fin y reintento automático
