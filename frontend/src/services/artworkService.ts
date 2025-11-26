@@ -49,7 +49,8 @@ class ArtworkService {
     if (!raw) return [];
     if (Array.isArray(raw)) {
       if (raw.length === 0) return [];
-      // if items are strings like 'met_438003' map them to minimal Artwork objects
+      
+      // if items are strings like 'met_438003' map them to minimal Artwork objects (legacy)
       if (typeof raw[0] === 'string') {
         return raw.map((s) => {
           const str = String(s);
@@ -57,6 +58,21 @@ class ArtworkService {
           return { id: str, title: str, museum: parts.length > 1 ? parts[0] : 'unknown' } as Artwork;
         });
       }
+      
+      // if items are favorite objects with artworkId, map to Artwork format
+      if (raw[0]?.artworkId) {
+        return raw.map((fav) => ({
+          id: fav.artworkId,
+          title: fav.title || fav.artworkId,
+          artist: fav.artist,
+          imageUrl: fav.imageUrl,
+          museum: fav.museum || 'unknown',
+          description: fav.description,
+          dated: fav.year,
+          primaryImageSmall: fav.imageUrl
+        } as Artwork));
+      }
+      
       // assume already Artwork[]
       return raw as Artwork[];
     }
@@ -99,14 +115,23 @@ class ArtworkService {
     return response.data.data;
   }
 
-  async addToFavorites(userId: string, artworkId: string): Promise<void> {
-    await api.post(`/users/${userId}/favorites`, { artworkId });
-    // update cache optimistically: mark that cache is stale and refetch next time
+  async addToFavorites(userId: string, artwork: Artwork): Promise<void> {
+    // Enviar datos completos de la obra al backend
+    await api.post(`/users/${userId}/favorites`, {
+      artworkId: artwork.id,
+      title: artwork.title,
+      artist: artwork.artist,
+      imageUrl: artwork.imageUrl || artwork.primaryImageSmall,
+      museum: artwork.museum,
+      description: artwork.description || artwork.medium,
+      year: artwork.dated || artwork.period
+    });
+    
+    // update cache optimistically with full artwork data
     if (!this.favoritesCache[userId]) this.favoritesCache[userId] = [];
     // avoid duplicates
-    if (!this.favoritesCache[userId].some(a => a.id === artworkId)) {
-      // push a placeholder minimal object (server will provide full data on next fetch)
-      this.favoritesCache[userId].push({ id: artworkId, title: 'Obra (sin datos)', museum: 'unknown' } as Artwork);
+    if (!this.favoritesCache[userId].some(a => a.id === artwork.id)) {
+      this.favoritesCache[userId].push(artwork);
     }
     this.favoritesLastFetch[userId] = Date.now();
   }
@@ -157,7 +182,9 @@ class ArtworkService {
     }
 
     try {
-      const response = await api.get(`/users/${userId}/favorites`);
+      const response = await api.get(`/users/${userId}/favorites`, {
+        timeout: 10000, // 10 second timeout
+      });
       const respData = response.data;
       let favs: Artwork[] = [];
       if (respData?.data && Array.isArray(respData.data.favorites)) {

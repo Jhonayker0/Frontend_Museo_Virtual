@@ -15,6 +15,7 @@ function App() {
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [user, setUser] = useState(authService.getCurrentUser());
   const [view, setView] = useState<AuthView>('gallery');
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
     // Verificar si el usuario está autenticado al cargar
@@ -41,8 +42,9 @@ function App() {
     setArtworks([]);
   };
 
-  const handleSearch = (results: Artwork[]) => {
+  const handleSearch = (results: Artwork[], searched: boolean = false) => {
     setArtworks(results);
+    setHasSearched(searched);
   };
 
   // Handling favorites view
@@ -92,6 +94,25 @@ function App() {
       {authView === 'gallery' && (
         artworks.length > 0 ? (
           <ARGallery artworks={artworks} />
+        ) : hasSearched ? (
+          <div className="empty-state">
+            <div className="empty-content">
+              <h2>😔 No se encontraron obras</h2>
+              <p>No se encontraron resultados para tu búsqueda</p>
+              <p className="empty-hint">
+                Intenta con otros términos como: "monet", "picasso", "renaissance", "portrait"
+              </p>
+              <div className="search-tips">
+                <h3>💡 Sugerencias:</h3>
+                <ul style={{ textAlign: 'left', maxWidth: '400px', margin: '0 auto' }}>
+                  <li>Usa términos en inglés para mejores resultados</li>
+                  <li>Prueba con nombres de artistas famosos</li>
+                  <li>Busca por períodos artísticos (renaissance, baroque, impressionist)</li>
+                  <li>Intenta con estilos o temas (portrait, landscape, still life)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="empty-state">
             <div className="empty-content">

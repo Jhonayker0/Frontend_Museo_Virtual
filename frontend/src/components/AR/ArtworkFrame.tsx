@@ -30,18 +30,20 @@ export default function ArtworkFrame({
   
   let imageUrl: string;
   
-  if (artwork.museum === 'harvard') {
-    // Harvard: placeholder artístico ya que sus imágenes no son accesibles
+  if (hasRealImage) {
+    if (artwork.museum === 'harvard') {
+      // Harvard: las URLs ya vienen convertidas a IIIF desde el backend, usar directamente
+      imageUrl = realImageUrl;
+    } else {
+      // MET: usar proxy CORS para imagen real
+      imageUrl = `https://corsproxy.io/?${encodeURIComponent(realImageUrl)}`;
+    }
+  } else {
+    // Sin imagen: placeholder con colores suaves
     const colors = ['FF6B6B', '4ECDC4', '45B7D1', '96CEB4', 'FFEAA7', 'DFE6E9'];
     const colorIndex = Math.abs(artwork.id?.toString().charCodeAt(0) || 0) % colors.length;
     const color = colors[colorIndex];
     imageUrl = `https://placehold.co/800x1000/${color}/white?text=${encodeURIComponent(artwork.title.slice(0, 25))}`;
-  } else if (hasRealImage) {
-    // MET: usar proxy CORS para imagen real
-    imageUrl = `https://corsproxy.io/?${encodeURIComponent(realImageUrl)}`;
-  } else {
-    // Sin imagen: placeholder
-    imageUrl = `https://placehold.co/800x1000/4A90E2/white?text=${encodeURIComponent(artwork.title.slice(0, 20))}`;
   }
   
   // Cargar textura

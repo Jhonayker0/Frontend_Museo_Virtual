@@ -4,7 +4,7 @@ import './Search.css';
 import authService from '../../services/authService';
 
 interface SearchBarProps {
-  onSearch: (artworks: Artwork[]) => void;
+  onSearch: (artworks: Artwork[], hasSearched?: boolean) => void;
 }
 
 export default function SearchBar({ onSearch }: SearchBarProps) {
@@ -41,7 +41,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     setLoading(true);
     
     // Limpiar resultados anteriores inmediatamente
-    onSearch([]);
+    onSearch([], false);
 
     try {
       const params: SearchParams = {
@@ -73,7 +73,8 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       
       console.log(`Total: ${allArtworks.length} obras (MET primero)`);
 
-      onSearch(allArtworks);
+      // Notificar resultados con flag de búsqueda realizada
+      onSearch(allArtworks, true);
 
       // persist search in history (best-effort)
       try {
@@ -92,7 +93,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         || err.message 
         || 'Error al buscar obras de arte. Verifica que el backend esté corriendo.';
       setError(errorMessage);
-      onSearch([]);
+      onSearch([], false);
     } finally {
       setLoading(false);
     }
